@@ -56,6 +56,11 @@ sealed class Shortcuts(val defaultKeys: List<Key>, private val visibleText: Stri
     object Select : Shortcuts(listOf(Key.G), "Select")
     object Start : Shortcuts(listOf(Key.H), "Start")
 
+    object SpeedToggle : Shortcuts(listOf(Key.U), "Speed")
+    object SoundToggle : Shortcuts(listOf(Key.ShiftLeft, Key.MetaLeft, Key.P), "Sound")
+
+    internal object Divider : Shortcuts(emptyList(), "")
+
     override fun toString(): String = "$visibleText = ${keys.joinToString(separator = "+") { KeyEvent.getKeyText(it.nativeKeyCode) }}"
 
     fun keyShortcut(): KeyShortcut = KeyShortcut(
@@ -74,7 +79,10 @@ sealed class Shortcuts(val defaultKeys: List<Key>, private val visibleText: Stri
             Down,
             A, B,
             Select,
-            Start
+            Start,
+            Divider,
+            SpeedToggle,
+            SoundToggle
         )
     }
 }
@@ -191,24 +199,28 @@ fun KeyboardView(onCloseRequest: () -> Unit) {
                                 .padding(end = 4.dp)
                         ) {
                             items(Shortcuts.values()) {
-                                CustomChip(
-                                    it.toString(),
-                                    textColor = animateColorAsState(
-                                        if (shortcutSelected == it) MaterialTheme.colorScheme.onPrimary
-                                        else MaterialTheme.colorScheme.onSurface
-                                    ).value,
-                                    backgroundColor = animateColorAsState(
-                                        if (shortcutSelected == it) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surface
-                                    ).value,
-                                    modifier = Modifier.cursorForSelectable()
-                                ) {
-                                    keysPressed.clear()
-                                    if (shortcutSelected == it) {
-                                        shortcutSelected = null
-                                    } else {
-                                        shortcutSelected = it
-                                        keysPressed.addAll(it.keys)
+                                if(it is Shortcuts.Divider) {
+                                    Divider()
+                                } else {
+                                    CustomChip(
+                                        it.toString(),
+                                        textColor = animateColorAsState(
+                                            if (shortcutSelected == it) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurface
+                                        ).value,
+                                        backgroundColor = animateColorAsState(
+                                            if (shortcutSelected == it) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.surface
+                                        ).value,
+                                        modifier = Modifier.cursorForSelectable()
+                                    ) {
+                                        keysPressed.clear()
+                                        if (shortcutSelected == it) {
+                                            shortcutSelected = null
+                                        } else {
+                                            shortcutSelected = it
+                                            keysPressed.addAll(it.keys)
+                                        }
                                     }
                                 }
                             }

@@ -33,18 +33,14 @@ fun main() = application {
     PreComposeWindow(
         onCloseRequest = ::exitApplication,
         onKeyEvent = { k ->
-            when (k.key) {
-                Key.U -> {
+            when {
+                Shortcuts.SpeedToggle.keys.all { k.key == it } -> {
                     val speed = when (k.type) {
                         KeyEventType.KeyDown -> 8
                         KeyEventType.KeyUp -> 1
                         else -> 1
                     }
                     gbc.setSpeed(speed)
-                }
-
-                Key.P -> {
-                    if (k.type == KeyEventType.KeyUp) gbc.toggleSound(!gbc.isSoundEnabled)
                 }
             }
 
@@ -73,6 +69,17 @@ fun main() = application {
                     "Change Mappings",
                     checked = showKeyboard,
                     onCheckedChange = { showKeyboard = it }
+                )
+                Item(
+                    "Speed",
+                    onClick = { gbc.setSpeed(if(gbc.currentSpeed == 1) 8 else 1) },
+                    shortcut = Shortcuts.SpeedToggle.keyShortcut()
+                )
+                CheckboxItem(
+                    "Sound",
+                    checked = gbc.isSoundEnabled,
+                    onCheckedChange = { gbc.toggleSound(it) },
+                    shortcut = Shortcuts.SoundToggle.keyShortcut()
                 )
             }
         }
