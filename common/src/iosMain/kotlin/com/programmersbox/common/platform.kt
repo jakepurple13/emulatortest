@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import moe.tlaster.precompose.PreComposeApplication
+import moe.tlaster.precompose.viewmodel.viewModel
 import platform.UIKit.UIViewController
 
 public actual fun getPlatformName(): String {
@@ -20,8 +21,8 @@ public actual fun getPlatformName(): String {
 }
 
 @Composable
-private fun UIShow() {
-    App()
+private fun UIShow(gbc: GBC) {
+    App(gbc)
 }
 
 public fun MainViewController(): UIViewController = PreComposeApplication("My Application") {
@@ -35,18 +36,13 @@ public fun MainViewController(): UIViewController = PreComposeApplication("My Ap
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Spacer(Modifier.height(30.dp))
-                UIShow()
+                UIShow(viewModel(GBC::class) { GBC() })
             }
         }
     }
 }
 
 internal actual fun pathToBytes(path: String): ByteArray = byteArrayOf()
-
-@Composable
-internal actual fun GameBoyScreen(viewModel: GameBoyViewModel) {
-
-}
 
 internal actual class SoundPlayer actual constructor(sampleRate: Int, bufferLengthMsec: Int) {
     actual val availableSamples: Int = 0

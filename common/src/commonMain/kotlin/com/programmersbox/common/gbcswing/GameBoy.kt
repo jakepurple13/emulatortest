@@ -2202,6 +2202,7 @@ class GameBoy(
 
     suspend fun shutdown() {
         if (running()) {
+            speaker?.stop()
             terminate()
             while (thread?.isActive == true) {
                 thread?.join()

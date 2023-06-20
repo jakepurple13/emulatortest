@@ -1,32 +1,28 @@
-import androidx.compose.foundation.Image
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.VolumeMute
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.application
 import com.programmersbox.common.GBC
+import com.programmersbox.common.UIShow
 import com.programmersbox.common.gbcswing.GameBoyButton
-import com.programmersbox.common.romString
 import moe.tlaster.precompose.PreComposeWindow
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = application {
-    val gbc = remember { GBC(romString) }
+    val gbc = remember { GBC() }
 
     var showKeyboard by remember { mutableStateOf(false) }
 
@@ -72,7 +68,7 @@ fun main() = application {
                 )
                 Item(
                     "Speed",
-                    onClick = { gbc.setSpeed(if(gbc.currentSpeed == 1) 8 else 1) },
+                    onClick = { gbc.setSpeed(if (gbc.currentSpeed == 1) 8 else 1) },
                     shortcut = Shortcuts.SpeedToggle.keyShortcut()
                 )
                 CheckboxItem(
@@ -84,43 +80,40 @@ fun main() = application {
             }
         }
         MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
-            Surface { GameBoy(gbc) }
+            Surface { PlayArea(gbc) }
         }
     }
 
-    if(showKeyboard) KeyboardView { showKeyboard = false }
+    if (showKeyboard) KeyboardView { showKeyboard = false }
 }
 
 @Composable
-fun GameBoy(gbc: GBC) {
-    Box(
-        Modifier.fillMaxSize()
-    ) {
-        if (gbc.showFps) {
-            Column(modifier = Modifier.align(Alignment.TopStart)) {
-                Text(
-                    gbc.fpsInfo,
-                    color = Color.Red,
-                )
-                Text("Speed: ${gbc.currentSpeed}")
-                Icon(
-                    if (gbc.isSoundEnabled) {
-                        Icons.Default.VolumeUp
-                    } else {
-                        Icons.Default.VolumeMute
-                    },
-                    null
-                )
-            }
-        }
+fun FrameWindowScope.PlayArea(gbc: GBC) {
+    UIShow(gbc)
 
-        gbc.gameBoyImage?.let {
-            Image(
-                it,
-                null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.matchParentSize()
-            )
+    var isDragging by remember { mutableStateOf(false) }
+
+    AnimatedVisibility(
+        isDragging,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        Surface {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { Text("Load new ROM. This will stop current emulation.") }
         }
     }
+
+    DragDrop(
+        onDragStateChange = { isDragging = it },
+        onDropped = {
+            when (it) {
+                is List<*> -> {
+                    it.firstOrNull()?.toString()?.let { s -> gbc.loadRom(s) }
+                }
+            }
+        }
+    )
 }

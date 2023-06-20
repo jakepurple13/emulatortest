@@ -814,6 +814,11 @@ internal class Speaker(private val registers: ByteArray) {
         }
     }
 
+    fun stop() {
+        soundLine?.stop()
+        soundLine?.dispose()
+    }
+
     // SPEED
     fun setSpeed(i: Int) {
         speed.setSpeed(i)

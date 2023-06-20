@@ -8,16 +8,11 @@ public actual fun getPlatformName(): String {
 }
 
 @Composable
-public fun UIShow() {
-    App()
+public fun UIShow(gbc: GBC) {
+    App(gbc)
 }
 
 internal actual fun pathToBytes(path: String): ByteArray = File(path).readBytes()
-
-@Composable
-internal actual fun GameBoyScreen(viewModel: GameBoyViewModel) {
-
-}
 
 internal actual class SoundPlayer actual constructor(sampleRate: Int, bufferLengthMsec: Int) {
     actual val availableSamples: Int = 0
