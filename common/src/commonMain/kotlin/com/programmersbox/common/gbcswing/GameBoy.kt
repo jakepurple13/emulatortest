@@ -5,6 +5,7 @@ import com.programmersbox.common.gbcswing.Common.setInt
 import com.programmersbox.common.gbcswing.Common.showError
 import korlibs.memory.KmemGC
 import korlibs.memory.arraycopy
+import kotlinx.coroutines.*
 
 class GameBoy(
     var gbcFeatures: Boolean,
@@ -2169,7 +2170,7 @@ class GameBoy(
     fun getScreenSpeed() = screen.getSpeed()
 
     // THREAD
-    private var thread: Thread? = null
+    private var thread: Job? = null
 
     init {
         cartridge = Cartridge(cartridgeBin!!)
@@ -2187,23 +2188,23 @@ class GameBoy(
     }
 
     fun running(): Boolean {
-        return thread?.isAlive == true
+        return thread?.isActive == true
     }
 
     fun startup() {
         if (running()) {
             throw RuntimeException("Started")
         } else {
-            thread = Thread(this)
+            thread = CoroutineScope(Job() + Dispatchers.IO).launch { run() }
             thread?.start()
         }
     }
 
-    fun shutdown() {
+    suspend fun shutdown() {
         if (running()) {
             terminate()
-            while (thread?.isAlive == true) {
-                Thread.yield()
+            while (thread?.isActive == true) {
+                thread?.join()
             }
         } else {
             throw RuntimeException("")

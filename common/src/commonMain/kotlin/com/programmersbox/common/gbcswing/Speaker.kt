@@ -1,10 +1,7 @@
 package com.programmersbox.common.gbcswing
 
+import com.programmersbox.common.SoundPlayer
 import com.programmersbox.common.gbcswing.Common.unsign
-import javax.sound.sampled.AudioFormat
-import javax.sound.sampled.AudioSystem
-import javax.sound.sampled.DataLine
-import javax.sound.sampled.SourceDataLine
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -23,8 +20,8 @@ internal class Speaker(private val registers: ByteArray) {
     var sampleRate = 44100
         set(value) {
             field = value
-            soundLine!!.flush()
-            soundLine!!.close()
+            soundLine!!.stop()
+            soundLine!!.dispose()
             soundLine = initSoundHardware()
             channel1.sampleRate = value
             channel2.sampleRate = value
@@ -40,7 +37,7 @@ internal class Speaker(private val registers: ByteArray) {
     /**
      * The DataLine for outputting the sound
      */
-    var soundLine: SourceDataLine? = initSoundHardware()
+    var soundLine: SoundPlayer? = initSoundHardware()
     private val channel1: SquareWaveGenerator by lazy { SquareWaveGenerator(sampleRate) }
     private val channel2: SquareWaveGenerator by lazy { SquareWaveGenerator(sampleRate) }
     private val channel3: VoluntaryWaveGenerator by lazy { VoluntaryWaveGenerator(sampleRate) }
@@ -228,8 +225,8 @@ internal class Speaker(private val registers: ByteArray) {
      */
     fun outputSound() {
         if (soundEnabled && speed.output()) {
-            val numSamples: Int = if (sampleRate / 28 >= soundLine!!.available() * 2) {
-                soundLine!!.available() * 2
+            val numSamples: Int = if (sampleRate / 28 >= soundLine!!.availableSamples * 2) {
+                soundLine!!.availableSamples * 2
             } else {
                 sampleRate / 28 and 0xFFFE
             }
@@ -238,16 +235,25 @@ internal class Speaker(private val registers: ByteArray) {
             if (channel2Enable) channel2.play(b, numSamples / 2, 0)
             if (channel3Enable) channel3.play(b, numSamples / 2, 0)
             if (channel4Enable) channel4.play(b, numSamples / 2, 0)
-            soundLine!!.write(b, 0, numSamples)
+            soundLine!!.play(b, numSamples)
         }
     }
 
     /**
      * Initialize sound hardware if available
      */
-    fun initSoundHardware(): SourceDataLine? {
+    fun initSoundHardware(): SoundPlayer? {
         try {
-            val format = AudioFormat(
+            val d = SoundPlayer(sampleRate, bufferLengthMsec)
+            soundEnabled = true
+            return d
+            /*return runBlocking {
+                val d = nativeSoundProvider.createPlatformAudioOutput(sampleRate)
+                d.start()
+                soundEnabled = true
+                d
+            }*/
+            /*val format = AudioFormat(
                 AudioFormat.Encoding.PCM_SIGNED,
                 sampleRate.toFloat(), 8, 2, 2, sampleRate.toFloat(), true
             )
@@ -263,7 +269,7 @@ internal class Speaker(private val registers: ByteArray) {
                 //    System.out.println("Initialized audio successfully.");
                 soundEnabled = true
                 return line
-            }
+            }*/
         } catch (e: Exception) {
             println("Error: Audio system busy!")
             soundEnabled = false
@@ -276,8 +282,8 @@ internal class Speaker(private val registers: ByteArray) {
      */
     fun setBufferLength(time: Int) {
         bufferLengthMsec = time
-        soundLine!!.flush()
-        soundLine!!.close()
+        soundLine!!.stop()
+        soundLine!!.dispose()
         soundLine = initSoundHardware()
     }
 

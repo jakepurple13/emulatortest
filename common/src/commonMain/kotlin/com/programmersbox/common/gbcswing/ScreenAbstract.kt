@@ -4,7 +4,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import com.programmersbox.common.gbcswing.Common.getInt
 import com.programmersbox.common.gbcswing.Common.setInt
 import korlibs.memory.arraycopy
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
+import kotlin.jvm.JvmStatic
 
 internal abstract class ScreenAbstract(
     protected var registers: ByteArray,
@@ -115,7 +118,7 @@ internal abstract class ScreenAbstract(
     fun unflatten(flatState: ByteArray, offset: Int): Int {
         var offset = offset
         for (i in videoRamBanks.indices) {
-            java.lang.System.arraycopy(flatState, offset, videoRamBanks[i], 0, 0x2000)
+            arraycopy(flatState, offset, videoRamBanks[i], 0, 0x2000)
             offset += 0x2000
         }
         for (i in 0..11) {
@@ -213,7 +216,7 @@ internal abstract class ScreenAbstract(
         // sleep if too far ahead
         try {
             while (timer > now + MS_PER_FRAME) {
-                Thread.sleep(1)
+                runBlocking { delay(1) }
                 now = Clock.System.now().toEpochMilliseconds().toInt()
             }
         } catch (e: Exception) {
@@ -283,7 +286,7 @@ internal abstract class ScreenAbstract(
     companion object {
         // lookup table for fast image decoding
         @JvmStatic
-        protected var weaveLookup = IntArray(256)
+        protected val weaveLookup = IntArray(256)
 
         init {
             for (i in 1..255) {

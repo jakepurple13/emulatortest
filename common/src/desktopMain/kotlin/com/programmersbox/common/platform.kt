@@ -1,16 +1,19 @@
 package com.programmersbox.common
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asComposeImageBitmap
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import com.programmersbox.common.gbcswing.Controller
@@ -23,14 +26,11 @@ import kotlinx.datetime.Clock
 import moe.tlaster.precompose.viewmodel.ViewModel
 import moe.tlaster.precompose.viewmodel.viewModel
 import moe.tlaster.precompose.viewmodel.viewModelScope
-import org.jetbrains.skia.Bitmap
-import org.jetbrains.skia.ColorAlphaType
-import org.jetbrains.skia.ImageInfo
 import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.nio.ByteBuffer
-import kotlin.math.roundToInt
+import javax.sound.sampled.AudioFormat
+import javax.sound.sampled.AudioSystem
+import javax.sound.sampled.DataLine
+import javax.sound.sampled.SourceDataLine
 
 
 public actual fun getPlatformName(): String {
@@ -51,7 +51,40 @@ internal actual fun GameBoyScreen(viewModel: GameBoyViewModel) {
     GameBoyTwo(viewModel)
 }
 
-val romString = "~/Downloads/Tetris (JUE) (V1.1) [!].gb"
+internal actual class SoundPlayer actual constructor(sampleRate: Int, bufferLengthMsec: Int) {
+    private var sourceLine: SourceDataLine? = null
+
+    init {
+        val format = AudioFormat(
+            AudioFormat.Encoding.PCM_SIGNED,
+            sampleRate.toFloat(), 8, 2, 2, sampleRate.toFloat(), true
+        )
+        val lineInfo = DataLine.Info(SourceDataLine::class.java, format)
+        if (!AudioSystem.isLineSupported(lineInfo)) {
+            println("Error: Can't find audio output system!")
+        } else {
+            val line = AudioSystem.getLine(lineInfo) as SourceDataLine
+            val bufferLength = sampleRate / 1000 * bufferLengthMsec
+            line.open(format, bufferLength)
+            line.start()
+            sourceLine = line
+            //    System.out.println("Initialized audio successfully.");
+        }
+    }
+
+    actual val availableSamples: Int get() = sourceLine?.available() ?: 0
+    actual fun play(byteArray: ByteArray, numSamples: Int) {
+        sourceLine!!.write(byteArray, 0, numSamples)
+    }
+
+    actual fun stop() {
+        sourceLine?.flush()
+    }
+
+    actual fun dispose() {
+        sourceLine?.close()
+    }
+}
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -125,7 +158,7 @@ class GBC(romPath: String?) : ViewModel() {
         GameBoy(
             false,
             Palette.GB,
-            readFile(romPath),
+            File(romPath).inputStream().readBytes(),
             controller,
             screenListener
         )
@@ -155,31 +188,4 @@ class GBC(romPath: String?) : ViewModel() {
         isSoundEnabled = sound
         gameBoy.setSoundEnable(sound)
     }
-}
-
-fun readFile(path: String?): ByteArray? {
-    val loadFile = File(path)
-    if (loadFile.exists()) {
-        val bin = ByteArray(loadFile.length().toInt())
-        var total = loadFile.length().toInt()
-        var fis: FileInputStream? = null
-        try {
-            fis = FileInputStream(loadFile)
-            while (total > 0) {
-                total -= fis.read(bin, (loadFile.length() - total).toInt(), total)
-            }
-            return bin
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close()
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-    return null
 }
