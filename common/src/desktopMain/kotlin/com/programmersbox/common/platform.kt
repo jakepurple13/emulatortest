@@ -101,7 +101,6 @@ class GBC(romPath: String?) : ViewModel() {
     val controller: Controller = Controller()
     var gameBoyImage: ImageBitmap? by mutableStateOf(null)
     private var gameBoySkipFrame = 0
-    var repaint by mutableStateOf(0)
 
     var isSoundEnabled by mutableStateOf(true)
     var currentSpeed: Int by mutableStateOf(1)
@@ -112,7 +111,7 @@ class GBC(romPath: String?) : ViewModel() {
     private var previousTimeIx = 0
 
     private val screenListener = ScreenListener { image, skipFrame ->
-        gameBoyImage = image?.toComposeImageBitmap()
+        gameBoyImage = image//?.toComposeImageBitmap()
         gameBoySkipFrame = skipFrame
 
         val now = Clock.System.now().toEpochMilliseconds().toInt()
@@ -120,8 +119,8 @@ class GBC(romPath: String?) : ViewModel() {
         previousTime[previousTimeIx] = now
         previousTimeIx = previousTimeIx + 1 and 0x0F
         fpsInfo = eFps.toString() + " fps * " + (gameBoySkipFrame + 1)
-        repaint++
     }
+
     private val gameBoy: GameBoy by lazy {
         GameBoy(
             false,

@@ -228,8 +228,7 @@ internal class Speaker(private val registers: ByteArray) {
      */
     fun outputSound() {
         if (soundEnabled && speed.output()) {
-            val numSamples: Int
-            numSamples = if (sampleRate / 28 >= soundLine!!.available() * 2) {
+            val numSamples: Int = if (sampleRate / 28 >= soundLine!!.available() * 2) {
                 soundLine!!.available() * 2
             } else {
                 sampleRate / 28 and 0xFFFE

@@ -1,7 +1,7 @@
 package com.programmersbox.common.gbcswing
 
-import java.awt.image.BufferedImage
+import androidx.compose.ui.graphics.ImageBitmap
 
 fun interface ScreenListener {
-    fun onFrameReady(image: BufferedImage?, skipFrame: Int)
+    fun onFrameReady(image: ImageBitmap?, skipFrame: Int)
 }

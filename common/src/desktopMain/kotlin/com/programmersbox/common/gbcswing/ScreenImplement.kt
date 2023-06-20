@@ -1,8 +1,9 @@
 package com.programmersbox.common.gbcswing
 
-import java.awt.image.BufferedImage
-import java.awt.image.DataBufferInt
-
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asComposeImageBitmap
+import org.jetbrains.skia.*
 
 internal class ScreenImplement(
     registers: ByteArray?,
@@ -18,9 +19,10 @@ internal class ScreenImplement(
     // tiles & image cache
     private val transparentImage = IntArray(0)
     private val tileImage: Array<IntArray?>
-    private val tileReadState // true if there are any images to be invalidated
-            : BooleanArray
-    private var tempPix: IntArray
+
+    // true if there are any images to be invalidated
+    private val tileReadState: BooleanArray
+    private var tempPix: IntArray = IntArray(8 * 8)
     private var windowSourceLine = 0
 
     init {
@@ -29,7 +31,6 @@ internal class ScreenImplement(
         transparentCutoff = if (gbcFeatures) 32 else 4
         tileImage = arrayOfNulls(tileCount * colorCount)
         tileReadState = BooleanArray(tileCount)
-        tempPix = IntArray(8 * 8)
         frameBuffer = IntArray(8 * 8 * 20 * 18)
     }
 
@@ -130,8 +131,8 @@ internal class ScreenImplement(
                     if (doubledSprites) {
                         tileNum = tileNum and 0xFE
                     }
-                    var spriteAttrib =
-                        attributes shr 5 and 0x03 // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
+                    // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
+                    var spriteAttrib = attributes shr 5 and 0x03
                     if (gbcFeatures) {
                         spriteAttrib += 0x20 + (attributes and 0x07 shl 2) // palette
                         tileNum += (384 shr 3) * (attributes and 0x08) // tile vram bank
@@ -388,10 +389,36 @@ internal class ScreenImplement(
         }
     }
 
-    private fun createImage(width: Int, height: Int, pixes: IntArray): BufferedImage {
-        val bi = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+    private fun createImage(width: Int, height: Int, pixes: IntArray): ImageBitmap {
+        val bitmap = Bitmap()
+        val bytes = ByteArray(width * height * ColorType.RGBA_8888.bytesPerPixel)
+        for ((index, c) in pixes.withIndex()) {
+            try {
+                val color = Color(c)
+                bytes[index * ColorType.RGBA_8888.bytesPerPixel + 0] = (color.red * 255).toInt().toByte()
+                bytes[index * ColorType.RGBA_8888.bytesPerPixel + 1] = (color.green * 255).toInt().toByte()
+                bytes[index * ColorType.RGBA_8888.bytesPerPixel + 2] = (color.blue * 255).toInt().toByte()
+                bytes[index * ColorType.RGBA_8888.bytesPerPixel + 3] = (255).toByte()
+            } catch (e: Exception) {
+                continue
+            }
+        }
+        val info = ImageInfo(
+            colorInfo = ColorInfo(
+                colorType = ColorType.RGBA_8888,
+                alphaType = ColorAlphaType.PREMUL,
+                colorSpace = ColorSpace.sRGB
+            ),
+            width = width,
+            height = height
+        )
+        bitmap.allocPixels(info)
+        bitmap.installPixels(bytes)
+        return bitmap.asComposeImageBitmap()
+        //Original
+        /*val bi = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
         val target = (bi.raster.dataBuffer as DataBufferInt).data
         System.arraycopy(pixes, 0, target, 0, target.size)
-        return bi
+        return bi*/
     }
 }

@@ -1,12 +1,10 @@
 package com.programmersbox.common.gbcswing
 
+import androidx.compose.ui.graphics.ImageBitmap
 import com.programmersbox.common.gbcswing.Common.getInt
 import com.programmersbox.common.gbcswing.Common.setInt
 import korlibs.memory.arraycopy
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
-import java.awt.image.BufferedImage
 
 internal abstract class ScreenAbstract(
     protected var registers: ByteArray,
@@ -81,7 +79,7 @@ internal abstract class ScreenAbstract(
     protected var colorCount = 0 // number of "logical" colors = palette indices, 12 for gb, 64 for gbc
     protected var width = 160
     protected var height = 144
-    protected var frameBufferImage: BufferedImage? = null
+    protected var frameBufferImage: ImageBitmap? = null
     private val maxFrameSkip: Int
 
     /**

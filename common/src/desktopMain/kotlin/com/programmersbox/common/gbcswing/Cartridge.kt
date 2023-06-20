@@ -1,10 +1,7 @@
 package com.programmersbox.common.gbcswing
 
 import korlibs.memory.arraycopy
-import korlibs.time.Date
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-
 
 internal open class Cartridge(bin: ByteArray) {
     val rom: Array<ByteArray>
@@ -22,7 +19,7 @@ internal open class Cartridge(bin: ByteArray) {
         hasBattery = loadHasBattery(bin)
         ram = loadRam(bin)
         rtcReg = ByteArray(5)
-        lastRtcUpdate = Clock.System.now().toEpochMilliseconds().toInt()//System.currentTimeMillis().toInt()
+        lastRtcUpdate = Clock.System.now().toEpochMilliseconds().toInt()
     }
 
     private fun loadColored(bin: ByteArray): Boolean {

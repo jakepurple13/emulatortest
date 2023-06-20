@@ -286,48 +286,38 @@ class GameBoy(
         when (regNum) {
             0 -> {
                 b = data
-                return
             }
 
             1 -> {
                 c = data
-                return
             }
 
             2 -> {
                 d = data
-                return
             }
 
             3 -> {
                 e = data
-                return
             }
 
             4 -> {
                 // h
                 hl = hl and 0x00FF or (data shl 8)
-                return
             }
 
             5 -> {
                 // l
                 hl = hl and 0xFF00 or data
-                return
             }
 
             6 -> {
                 // (hl)
                 addressWrite(hl, data)
-                return
             }
 
             7 -> {
                 a = data
-                return
             }
-
-            else -> return
         }
     }
 
@@ -768,13 +758,12 @@ class GameBoy(
     override fun run() {
         try {
             isTerminated = false
-            var newf = 0
+            var newf: Int
             var b1: Int
             var b2: Int
             var offset: Int
             var b3: Int
             KmemGC.collect()
-            //System.gc()
             screen.fixTimer()
             while (!isTerminated) {
                 if (localPC <= decoderMaxCruise) {
@@ -840,7 +829,7 @@ class GameBoy(
                     }
 
                     0x09 -> {
-                        hl = hl + ((b shl 8) + c)
+                        hl += ((b shl 8) + c)
                         if (hl and -0x10000 != 0) {
                             f = f and F_ZERO or F_CARRY // halfcarry is wrong
                             hl = hl and 0xFFFF
@@ -1617,26 +1606,33 @@ class GameBoy(
      * Read data from IO Ram
      */
     private fun ioRead(num: Int): Int {
-        if (num == 0x41) {
-            // LCDSTAT
-            var output = registers[0x41].toInt()
-            if (registers[0x44] == registers[0x45]) {
-                output = output or 4
+        when (num) {
+            0x41 -> {
+                // LCDSTAT
+                var output = registers[0x41].toInt()
+                if (registers[0x44] == registers[0x45]) {
+                    output = output or 4
+                }
+                output = if (registers[0x44].toInt() and 0xff >= 144) {
+                    output or 1 // mode 1
+                } else {
+                    output or graphicsChipMode
+                }
+                return output
             }
-            output = if (registers[0x44].toInt() and 0xff >= 144) {
-                output or 1 // mode 1
-            } else {
-                output or graphicsChipMode
+
+            0x04 -> {
+                // DIV
+                return ((instrCount - divReset - 1) / INSTRS_PER_DIV).toByte().toInt()
             }
-            return output
-        } else if (num == 0x04) {
-            // DIV
-            return ((instrCount - divReset - 1) / INSTRS_PER_DIV).toByte().toInt()
-        } else if (num == 0x05) {
-            // TIMA
-            return if (!timaActive) registers[num].toInt() else (instrCount + instrsPerTima * 0x100 - nextTimaOverflow) / instrsPerTima
+
+            0x05 -> {
+                // TIMA
+                return if (!timaActive) registers[num].toInt() else (instrCount + instrsPerTima * 0x100 - nextTimaOverflow) / instrsPerTima
+            }
+
+            else -> return registers[num].toInt()
         }
-        return registers[num].toInt()
     }
 
     /**
