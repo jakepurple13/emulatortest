@@ -38,6 +38,10 @@ fun main() = application {
                     }
                     gbc.setSpeed(speed)
                 }
+
+                Shortcuts.SaveState.keys.all { k.key == it } -> {
+
+                }
             }
 
             when {
@@ -66,17 +70,64 @@ fun main() = application {
                     checked = showKeyboard,
                     onCheckedChange = { showKeyboard = it }
                 )
-                Item(
-                    "Speed",
-                    onClick = { gbc.setSpeed(if (gbc.currentSpeed == 1) 8 else 1) },
-                    shortcut = Shortcuts.SpeedToggle.keyShortcut()
-                )
                 CheckboxItem(
                     "Sound",
                     checked = gbc.isSoundEnabled,
                     onCheckedChange = { gbc.toggleSound(it) },
                     shortcut = Shortcuts.SoundToggle.keyShortcut()
                 )
+                CheckboxItem(
+                    "Show Info",
+                    checked = gbc.showInfo,
+                    onCheckedChange = gbc::toggleInfo,
+                    shortcut = Shortcuts.ShowInfo.keyShortcut()
+                )
+            }
+            Menu("Actions") {
+                Menu("Speed") {
+                    Item(
+                        "Speed Toggle",
+                        onClick = { gbc.setSpeed(if (gbc.currentSpeed == 1) 8 else 1) },
+                        shortcut = Shortcuts.SpeedToggle.keyShortcut()
+                    )
+                    repeat(10) {
+                        Item(
+                            "Speed ${it + 1}x",
+                            onClick = { gbc.setSpeed(it + 1) },
+                        )
+                    }
+                }
+                Separator()
+                Menu("Save State") {
+                    Item(
+                        "Quick Save State",
+                        onClick = gbc::saveState,
+                        shortcut = Shortcuts.SaveState.keyShortcut()
+                    )
+                    Item(
+                        "Save",
+                        onClick = gbc::save,
+                    )
+                    repeat(4) {
+                        Item(
+                            "Save State ${it + 2}",
+                            onClick = { gbc.saveState(it + 2) },
+                        )
+                    }
+                }
+                Menu("Load State") {
+                    Item(
+                        "Quick Load State",
+                        onClick = gbc::loadState,
+                        shortcut = Shortcuts.LoadState.keyShortcut()
+                    )
+                    repeat(4) {
+                        Item(
+                            "Load State ${it + 2}",
+                            onClick = { gbc.loadState(it + 2) },
+                        )
+                    }
+                }
             }
         }
         MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
@@ -111,7 +162,13 @@ fun FrameWindowScope.PlayArea(gbc: GBC) {
         onDropped = {
             when (it) {
                 is List<*> -> {
-                    it.firstOrNull()?.toString()?.let { s -> gbc.loadRom(s) }
+                    it.firstOrNull()?.toString()?.let { file ->
+                        when {
+                            file.endsWith(".gb") -> gbc.loadRom(file)
+                            file.endsWith(".gbc") -> gbc.loadRom(file)
+                            file.endsWith(".sav") -> gbc.loadSave(file)
+                        }
+                    }
                 }
             }
         }

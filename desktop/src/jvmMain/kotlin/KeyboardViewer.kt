@@ -16,25 +16,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.*
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import java.awt.event.KeyEvent
-import java.util.prefs.Preferences
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import java.awt.Cursor
+import java.awt.event.KeyEvent
+import java.util.prefs.Preferences
 
 @OptIn(ExperimentalComposeUiApi::class)
 sealed class Shortcuts(val defaultKeys: List<Key>, private val visibleText: String) {
@@ -56,12 +55,16 @@ sealed class Shortcuts(val defaultKeys: List<Key>, private val visibleText: Stri
     object Select : Shortcuts(listOf(Key.G), "Select")
     object Start : Shortcuts(listOf(Key.H), "Start")
 
+    object SaveState : Shortcuts(listOf(Key.T), "Save State")
+    object LoadState : Shortcuts(listOf(Key.Y), "Load State")
     object SpeedToggle : Shortcuts(listOf(Key.U), "Speed")
     object SoundToggle : Shortcuts(listOf(Key.ShiftLeft, Key.MetaLeft, Key.P), "Sound")
+    object ShowInfo : Shortcuts(listOf(Key.ShiftLeft, Key.MetaLeft, Key.S), "Show Info")
 
     internal object Divider : Shortcuts(emptyList(), "")
 
-    override fun toString(): String = "$visibleText = ${keys.joinToString(separator = "+") { KeyEvent.getKeyText(it.nativeKeyCode) }}"
+    override fun toString(): String =
+        "$visibleText = ${keys.joinToString(separator = "+") { KeyEvent.getKeyText(it.nativeKeyCode) }}"
 
     fun keyShortcut(): KeyShortcut = KeyShortcut(
         keys.filterOutModifiers().firstOrNull() ?: Key.PageUp,
@@ -82,7 +85,10 @@ sealed class Shortcuts(val defaultKeys: List<Key>, private val visibleText: Stri
             Start,
             Divider,
             SpeedToggle,
-            SoundToggle
+            SoundToggle,
+            ShowInfo,
+            SaveState,
+            LoadState
         )
     }
 }

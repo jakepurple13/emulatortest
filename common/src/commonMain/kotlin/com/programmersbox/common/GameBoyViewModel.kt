@@ -9,18 +9,18 @@ import com.programmersbox.common.gbcswing.Controller
 import com.programmersbox.common.gbcswing.GameBoy
 import com.programmersbox.common.gbcswing.Palette
 import com.programmersbox.common.gbcswing.ScreenListener
+import korlibs.io.file.VfsFile
+import korlibs.io.file.fullPathWithoutExtension
 import korlibs.io.file.std.localVfs
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import moe.tlaster.precompose.viewmodel.ViewModel
 import moe.tlaster.precompose.viewmodel.viewModelScope
+import kotlin.time.Duration.Companion.minutes
 
-class GBC() : ViewModel() {
+class GBC : ViewModel() {
     private val db = GameBoyDatabase()
     var loading by mutableStateOf(false)
     val controller: Controller = Controller()
@@ -29,6 +29,8 @@ class GBC() : ViewModel() {
 
     var isSoundEnabled by mutableStateOf(true)
     var currentSpeed: Int by mutableStateOf(1)
+
+    var isSaving by mutableStateOf(false)
 
     var showInfo by mutableStateOf(true)
     var fpsInfo by mutableStateOf("")
@@ -48,12 +50,16 @@ class GBC() : ViewModel() {
 
     private var gameBoy: GameBoy? by mutableStateOf(null)
 
+    private var romLocation: VfsFile? = null
+
     init {
         db
             .getSettings()
+            .distinctUntilChangedBy { it.lastRomLocation }
             .mapNotNull { it.lastRomLocation?.let { l -> localVfs(l) } }
             .filter { it.isFile() }
             .onEach {
+                romLocation = it
                 loading = true
                 gameBoy?.shutdown()
                 gameBoy = GameBoy(
@@ -63,6 +69,10 @@ class GBC() : ViewModel() {
                     controller,
                     screenListener
                 )
+                romLocation?.fullPathWithoutExtension?.let { pathName ->
+                    val path = localVfs("$pathName.sav")
+                    if (path.exists()) gameBoy!!.unflatten(path.readBytes())
+                }
                 delay(1000)
                 gameBoy?.apply {
                     setSoundEnable(true)
@@ -74,6 +84,26 @@ class GBC() : ViewModel() {
                     startup()
                 }
                 loading = false
+            }
+            .catch { gameBoy?.shutdown() }
+            .launchIn(viewModelScope)
+
+        db
+            .getSettings()
+            .map { it.showInfo }
+            .onEach { showInfo = it }
+            .launchIn(viewModelScope)
+
+        flow {
+            while (true) {
+                delay(5.minutes.inWholeMilliseconds)
+                emit(Unit)
+            }
+        }
+            .onEach {
+                romLocation?.fullPathWithoutExtension?.let { pathName ->
+                    saveData("$pathName.sav")
+                }
             }
             .launchIn(viewModelScope)
     }
@@ -89,8 +119,53 @@ class GBC() : ViewModel() {
     }
 
     fun loadRom(path: String?) {
+        viewModelScope.launch { db.romLocation(path) }
+    }
+
+    fun toggleInfo(show: Boolean) {
+        viewModelScope.launch { db.showInfo(show) }
+    }
+
+    fun saveState(count: Int = 1) = runCatching {
         viewModelScope.launch {
-            db.romLocation(path)
+            romLocation?.fullPathWithoutExtension?.let { pathName ->
+                saveData("$pathName$count.sav")
+            }
         }
+    }
+
+    fun loadState(count: Int = 1) = runCatching {
+        viewModelScope.launch {
+            gameBoy?.let { g ->
+                romLocation?.fullPathWithoutExtension?.let { pathName ->
+                    val path = localVfs("$pathName$count.sav")
+                    if (path.exists()) g.unflatten(path.readBytes())
+                }
+            }
+        }
+    }
+
+    fun save() {
+        viewModelScope.launch {
+            romLocation?.fullPathWithoutExtension?.let { pathName ->
+                saveData("$pathName.sav")
+            }
+        }
+    }
+
+    fun loadSave(path: String) {
+        viewModelScope.launch {
+            gameBoy?.let { g ->
+                val location = localVfs(path)
+                if (location.exists()) g.unflatten(location.readBytes())
+            }
+        }
+    }
+
+    private suspend fun saveData(path: String) {
+        isSaving = true
+        gameBoy?.let { g -> localVfs(path).write(g.flatten()) }
+        delay(2500)
+        isSaving = false
     }
 }

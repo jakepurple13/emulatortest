@@ -4,4 +4,5 @@ import io.realm.kotlin.types.RealmObject
 
 internal class GameBoySettings : RealmObject {
     var lastRomLocation: String? = ""
+    var showInfo = false
 }
