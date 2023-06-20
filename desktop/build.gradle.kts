@@ -1,6 +1,4 @@
-import org.jetbrains.compose.compose
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform")
@@ -23,6 +21,7 @@ kotlin {
                 implementation(project(":common"))
                 implementation(compose.desktop.currentOs)
                 implementation("com.google.code.gson:gson:2.10.1")
+                implementation("com.badlogicgames.jamepad:jamepad:2.0.20.0")
             }
         }
         val jvmTest by getting

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -18,11 +17,22 @@ import androidx.compose.ui.window.application
 import com.programmersbox.common.GBC
 import com.programmersbox.common.UIShow
 import com.programmersbox.common.gbcswing.GameBoyButton
+import com.studiohartman.jamepad.ControllerManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import moe.tlaster.precompose.PreComposeWindow
 
-@OptIn(ExperimentalComposeUiApi::class)
 fun main() = application {
     val gbc = remember { GBC() }
+
+    DisposableEffect(Unit) {
+        val c = ControllerSupport(gbc)
+        onDispose { c.dispose() }
+    }
 
     var showKeyboard by remember { mutableStateOf(false) }
 
@@ -153,7 +163,7 @@ fun FrameWindowScope.PlayArea(gbc: GBC) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
-            ) { Text("Load new ROM. This will stop current emulation.") }
+            ) { Text("Load new ROM/Save. A new ROM will stop current emulation.") }
         }
     }
 
@@ -173,4 +183,47 @@ fun FrameWindowScope.PlayArea(gbc: GBC) {
             }
         }
     )
+}
+
+class ControllerSupport(
+    private val gbc: GBC,
+) {
+    private val c = ControllerManager()
+
+    init {
+        c.initSDLGamepad()
+        flow {
+            while (true) {
+                val s = c.getState(0)
+                if (!s.isConnected) break
+                emit(s)
+            }
+        }
+            .onEach {
+                pressCheck(it.dpadRight, GameBoyButton.Right)
+                pressCheck(it.dpadLeft, GameBoyButton.Left)
+                pressCheck(it.dpadUp, GameBoyButton.Up)
+                pressCheck(it.dpadDown, GameBoyButton.Down)
+                pressCheck(it.a, GameBoyButton.A)
+                pressCheck(it.b, GameBoyButton.B)
+                pressCheck(it.start, GameBoyButton.Start)
+                pressCheck(it.back, GameBoyButton.Select)
+                if (it.rbJustPressed) gbc.saveState()
+                if (it.lbJustPressed) gbc.loadState()
+                if (it.xJustPressed) gbc.setSpeed(if (gbc.currentSpeed == 1) 8 else 1)
+            }
+            .launchIn(CoroutineScope(Job() + Dispatchers.IO))
+    }
+
+    private fun pressCheck(type: Boolean, button: GameBoyButton) {
+        if (type) {
+            gbc.controller.buttonDown(button)
+        } else {
+            gbc.controller.buttonUp(button)
+        }
+    }
+
+    fun dispose() {
+        c.quitSDLGamepad()
+    }
 }
