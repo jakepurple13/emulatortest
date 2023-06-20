@@ -4,18 +4,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
+import com.programmersbox.common.database.GameBoyDatabase
 import com.programmersbox.common.gbcswing.Controller
 import com.programmersbox.common.gbcswing.GameBoy
 import com.programmersbox.common.gbcswing.Palette
 import com.programmersbox.common.gbcswing.ScreenListener
 import korlibs.io.file.std.localVfs
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import moe.tlaster.precompose.viewmodel.ViewModel
 import moe.tlaster.precompose.viewmodel.viewModelScope
 
-class GBC(romPath: String? = null) : ViewModel() {
+class GBC() : ViewModel() {
+    private val db = GameBoyDatabase()
     var loading by mutableStateOf(false)
     val controller: Controller = Controller()
     var gameBoyImage: ImageBitmap? by mutableStateOf(null)
@@ -43,7 +49,33 @@ class GBC(romPath: String? = null) : ViewModel() {
     private var gameBoy: GameBoy? by mutableStateOf(null)
 
     init {
-        romPath?.let { loadRom(it) }
+        db
+            .getSettings()
+            .mapNotNull { it.lastRomLocation?.let { l -> localVfs(l) } }
+            .filter { it.isFile() }
+            .onEach {
+                loading = true
+                gameBoy?.shutdown()
+                gameBoy = GameBoy(
+                    false,
+                    Palette.GB,
+                    it.readBytes(),
+                    controller,
+                    screenListener
+                )
+                delay(1000)
+                gameBoy?.apply {
+                    setSoundEnable(true)
+                    setChannelEnable(1, true)
+                    setChannelEnable(2, true)
+                    setChannelEnable(3, true)
+                    setChannelEnable(4, true)
+                    setSpeed(1)
+                    startup()
+                }
+                loading = false
+            }
+            .launchIn(viewModelScope)
     }
 
     fun setSpeed(s: Int) {
@@ -56,28 +88,9 @@ class GBC(romPath: String? = null) : ViewModel() {
         gameBoy?.setSoundEnable(sound)
     }
 
-    fun loadRom(path: String) {
+    fun loadRom(path: String?) {
         viewModelScope.launch {
-            loading = true
-            gameBoy?.shutdown()
-            gameBoy = GameBoy(
-                false,
-                Palette.GB,
-                localVfs(path).readBytes(),
-                controller,
-                screenListener
-            )
-            delay(1000)
-            gameBoy?.apply {
-                setSoundEnable(true)
-                setChannelEnable(1, true)
-                setChannelEnable(2, true)
-                setChannelEnable(3, true)
-                setChannelEnable(4, true)
-                setSpeed(1)
-                startup()
-            }
-            loading = false
+            db.romLocation(path)
         }
     }
 }

@@ -1,10 +1,9 @@
-import org.gradle.internal.os.OperatingSystem
-
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     id("com.android.library")
     kotlin("native.cocoapods")
+    id("io.realm.kotlin")
 }
 
 group = "com.programmersbox"
@@ -40,7 +39,6 @@ kotlin {
         extraSpecAttributes["resources"] = "['src/commonMain/resources/**', 'src/iosMain/resources/**']"
     }
     sourceSets {
-        val gdxControllersVersion = "2.2.3"
         val precomposeVersion = "1.4.2"
         val commonMain by getting {
             dependencies {
@@ -54,6 +52,7 @@ kotlin {
                 api("com.soywiz.korlibs.korio:korio:4.0.6")
                 api("com.soywiz.korlibs.korau:korau:4.0.6")
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                api("io.realm.kotlin:library-base:1.9.0")
             }
         }
 
@@ -65,8 +64,8 @@ kotlin {
 
         val androidMain by getting {
             dependencies {
-                api("androidx.appcompat:appcompat:1.6.0")
-                api("androidx.core:core-ktx:1.9.0")
+                api("androidx.appcompat:appcompat:1.6.1")
+                api("androidx.core:core-ktx:1.10.1")
             }
         }
 

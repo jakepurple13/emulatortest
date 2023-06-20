@@ -19,3 +19,9 @@ plugins {
     id("com.android.library") apply false
     id("org.jetbrains.compose") apply false
 }
+
+buildscript {
+    dependencies {
+        classpath("io.realm.kotlin:gradle-plugin:1.9.0")
+    }
+}
